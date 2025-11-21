@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v5.1</title>
+    <title>Life OS v5.2</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -18,7 +18,7 @@
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -51,9 +51,11 @@
 
         // --- VARSAYILAN VERİLER ---
         const DEFAULT_REWARDS = [
-            { id: 1, title: "1 Bölüm Dizi/Anime", cost: 50, icon: "🎬" },
+            { id: 1, title: "1 Bölüm Dizi", cost: 50, icon: "🎬" },
             { id: 2, title: "Kahve Molası", cost: 20, icon: "☕" },
             { id: 3, title: "30 Dk Oyun", cost: 40, icon: "🎮" },
+            { id: 4, title: "Tatlı/Çikolata", cost: 30, icon: "🍫" },
+            { id: 5, title: "Geç Uyanma", cost: 80, icon: "🛌" },
         ];
 
         const DEFAULT_HABITS = [
@@ -109,6 +111,16 @@
                 setGold(prev => prev + amount);
             };
 
+            const handleBuyReward = (reward) => {
+                if (gold >= reward.cost) {
+                    if(confirm(`${reward.title} almak istiyor musun? (-${reward.cost} Altın)`)) {
+                        updateGold(-reward.cost);
+                    }
+                } else {
+                    alert("Yetersiz altın!");
+                }
+            };
+
             const toggleHabit = (habitId) => {
                 const dayData = getDayData(dateKey);
                 const doneHabits = dayData.habits || [];
@@ -125,7 +137,7 @@
                     newTask = { id: Date.now(), title: form.title, type: 'simple', completed: false, duration: form.time || '30', startTime: form.startTime || '' };
                 } else if (type === 'import') {
                     const p = modal.data;
-                    const amount = Number(form.amount) || 1; // NaN Koruması
+                    const amount = Number(form.amount) || 1; 
                     newTask = {
                         id: Date.now(), title: `${p.title} (${amount} ${p.unit})`, type: 'project_slice',
                         pid: p.id, targetAmount: amount, subItems: new Array(amount).fill(false), completed: false,
@@ -185,7 +197,6 @@
                 closeModal();
             };
 
-            // Rutin (Alışkanlık) Yönetimi
             const addHabit = () => {
                 if(!form.title) return;
                 setHabits([...habits, { id: Date.now(), title: form.title, icon: form.icon || '✨' }]);
@@ -228,8 +239,13 @@
                     <div onClick={handleSplashClick} className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center cursor-pointer z-50 transition-all duration-700">
                         <div className="animate-fade-in text-center px-6 space-y-6">
                             {splashStep === 0 && (<><h1 className="text-5xl font-thin tracking-widest">Life OS</h1><p className="text-gray-500 tracking-wide">HOŞGELDİN</p></>)}
-                            {splashStep === 1 && (<><h1 className="text-2xl font-light tracking-wide">Kişisel Yaşam İşletim Merkezin</h1><h2 className="text-4xl font-bold mt-4">Bugün ne yapıyoruz?</h2></>)}
-                            <div className="mt-12 text-xs text-gray-600 uppercase tracking-[0.3em] animate-pulse">Dokun</div>
+                            {splashStep === 1 && (
+                                <div className="flex flex-col items-center gap-10">
+                                    <h1 className="text-xl font-light tracking-wide opacity-80 mt-[-40px]">Kişisel Yaşam İşletim Merkezin</h1>
+                                    <h2 className="text-4xl font-bold leading-tight">Bugün ne yapıyoruz?</h2>
+                                </div>
+                            )}
+                            <div className="mt-12 text-xs text-gray-600 uppercase tracking-[0.3em] animate-pulse absolute bottom-20">Dokun</div>
                         </div>
                     </div>
                 );
@@ -341,7 +357,6 @@
                                 </div>
                                 {projects.map(p => {
                                     const isFlipped = flippedCards[p.id];
-                                    // NaN Koruması: Total 0 ise bölme yapma
                                     const total = Number(p.totalUnit) || 1;
                                     const current = Number(p.currentUnit) || 0;
                                     const pct = Math.min(100, Math.round((current / total) * 100));
@@ -384,6 +399,33 @@
                             </div>
                         )}
 
+                        {activeTab === 'store' && (
+                            <div className="space-y-6">
+                                <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                    <div className="relative z-10">
+                                        <div className="text-sm font-medium opacity-90">TOPLAM SERVETİN</div>
+                                        <div className="text-4xl font-bold mt-1 flex items-center gap-2">{gold} <span className="text-2xl opacity-80">Altın</span></div>
+                                    </div>
+                                    <div className="absolute -right-4 -bottom-8 opacity-20"><svg width="120" height="120" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"></circle></svg></div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {rewards.map(r => (
+                                        <button key={r.id} onClick={() => handleBuyReward(r)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-yellow-400 hover:shadow-md transition text-left group relative overflow-hidden">
+                                            <div className="text-2xl mb-2">{r.icon}</div>
+                                            <div className="font-bold text-gray-800 text-sm leading-tight mb-1">{r.title}</div>
+                                            <div className="text-xs font-bold text-yellow-600 bg-yellow-50 inline-block px-2 py-0.5 rounded">{r.cost} Altın</div>
+                                            <div className="absolute inset-0 bg-yellow-400 opacity-0 group-hover:opacity-10 transition flex items-center justify-center"></div>
+                                        </button>
+                                    ))}
+                                    <button onClick={() => openModal('reward_new')} className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition min-h-[100px]">
+                                        <Icons.Plus />
+                                        <span className="text-xs font-bold mt-1">Ödül Ekle</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'calendar' && (
                             <div className="space-y-6">
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -421,7 +463,9 @@
                                         {modal.type === 'selection' ? 'Ne Ekleyelim?' : 
                                          modal.type === 'project_new' ? 'Yeni Büyük Hedef' :
                                          modal.type === 'import' ? 'Projeden Çek' : 
-                                         modal.type === 'habits_edit' ? 'Rutinleri Düzenle' : 'Yeni Görev'}
+                                         modal.type === 'habits_edit' ? 'Rutinleri Düzenle' : 
+                                         modal.type === 'journal' ? 'Bugünkü Düşüncelerin' : 
+                                         modal.type === 'reward_new' ? 'Yeni Ödül' : 'Yeni Görev'}
                                     </h3>
                                     <button onClick={closeModal} className="bg-gray-100 p-2 rounded-full"><Icons.Close /></button>
                                 </div>
@@ -498,6 +542,17 @@
                                         </div>
                                         <textarea placeholder="Bugün nasıl geçti?" className="w-full p-4 bg-gray-50 rounded-2xl h-32 resize-none" value={form.note} onChange={e=>setForm({...form, note: e.target.value})}></textarea>
                                         <button onClick={() => { const dayData = getDayData(dateKey); setHistory({ ...history, [dateKey]: { ...dayData, journal: { mood: form.mood, note: form.note } } }); closeModal(); }} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Kaydet</button>
+                                    </div>
+                                )}
+
+                                {modal.type === 'reward_new' && (
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                            <input type="number" placeholder="Bedel (Altın)" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.cost} onChange={e=>setForm({...form, cost: e.target.value})} />
+                                            <input placeholder="İkon (🎁)" className="w-16 p-3 bg-gray-50 rounded-xl text-center" value={form.icon} onChange={e=>setForm({...form, icon: e.target.value})} />
+                                        </div>
+                                        <input placeholder="Ödül Adı" className="w-full p-3 bg-gray-50 rounded-xl" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} />
+                                        <button onClick={() => { setRewards([...rewards, {id: Date.now(), title: form.title, cost: Number(form.cost), icon: form.icon||'🎁'}]); closeModal(); }} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold">Ödül Ekle</button>
                                     </div>
                                 )}
                             </div>
