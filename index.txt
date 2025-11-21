@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Life OS v5</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f3f4f6; }
+        input, button, select, textarea { outline: none; }
+        .foggy-event { background: rgba(59, 130, 246, 0.1); backdrop-filter: blur(4px); border-left: 3px solid rgba(59, 130, 246, 0.6); }
+        
+        /* 3D Flip Card Efektleri */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* Animasyonlar */
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes coin-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .animate-coin { animation: coin-bounce 0.3s ease-in-out; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- İKONLAR ---
+        const Icons = {
+            Plus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+            Check: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+            Briefcase: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>,
+            Calendar: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
+            Clock: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+            ChevronLeft: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>,
+            ChevronRight: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+            Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Play: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
+            Pause: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>,
+            Edit: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
+            Rotate: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>,
+            Coin: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="gold" stroke="goldenrod" strokeWidth="1"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="white" strokeWidth="2" fill="none"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="white" strokeWidth="3"/></svg>,
+            Store: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
+            Journal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        };
+
+        // --- DEFAULT VERİLER ---
+        const DEFAULT_REWARDS = [
+            { id: 1, title: "1 Bölüm Dizi/Anime", cost: 50, icon: "🎬" },
+            { id: 2, title: "Kahve Molası", cost: 20, icon: "☕" },
+            { id: 3, title: "30 Dk Oyun", cost: 40, icon: "🎮" },
+            { id: 4, title: "Tatlı/Çikolata", cost: 30, icon: "🍫" },
+            { id: 5, title: "Sosyal Medya (30dk)", cost: 25, icon: "📱" },
+            { id: 6, title: "Dışarıda Yemek", cost: 150, icon: "🍔" },
+            { id: 7, title: "Film Gecesi", cost: 100, icon: "🍿" },
+            { id: 8, title: "Yeni Kitap Al", cost: 200, icon: "📚" },
+            { id: 9, title: "Geç Uyanma Hakkı", cost: 80, icon: "🛌" },
+            { id: 10, title: "Suçluluksuz Tembellik", cost: 60, icon: "🦥" },
+        ];
+
+        const DEFAULT_HABITS = [
+            { id: 'h1', title: 'Yatağı Topla', icon: '🛏️' },
+            { id: 'h2', title: 'Su İç (2L)', icon: '💧' },
+            { id: 'h3', title: 'Kitap Oku (20syf)', icon: '📖' },
+            { id: 'h4', title: 'Egzersiz', icon: '💪' },
+        ];
+
+        function App() {
+            // --- STATE ---
+            const [splashStep, setSplashStep] = useState(0);
+            const [activeTab, setActiveTab] = useState('planner'); // planner, calendar, projects, store
+            const [selectedDate, setSelectedDate] = useState(new Date());
+            
+            // Data
+            const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('v5_projects') || '[]'));
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('v5_history') || '{}'));
+            const [habits, setHabits] = useState(() => JSON.parse(localStorage.getItem('v5_habits') || JSON.stringify(DEFAULT_HABITS)));
+            const [rewards, setRewards] = useState(() => JSON.parse(localStorage.getItem('v5_rewards') || JSON.stringify(DEFAULT_REWARDS)));
+            const [gold, setGold] = useState(() => Number(localStorage.getItem('v5_gold') || 0));
+
+            // UI State
+            const [showTimeline, setShowTimeline] = useState(false);
+            const [flippedCards, setFlippedCards] = useState({}); // { pid: boolean }
+            const [focusMode, setFocusMode] = useState({ active: false, taskId: null, taskTitle: '', timeLeft: 0, isRunning: false });
+            const [modal, setModal] = useState({ open: false, type: null, data: null });
+            const [form, setForm] = useState({});
+
+            // --- PERSISTENCE ---
+            useEffect(() => { localStorage.setItem('v5_projects', JSON.stringify(projects)); }, [projects]);
+            useEffect(() => { localStorage.setItem('v5_history', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('v5_habits', JSON.stringify(habits)); }, [habits]);
+            useEffect(() => { localStorage.setItem('v5_rewards', JSON.stringify(rewards)); }, [rewards]);
+            useEffect(() => { localStorage.setItem('v5_gold', gold); }, [gold]);
+
+            // --- HELPERS ---
+            const getDateKey = (date) => date.toISOString().split('T')[0];
+            const dateKey = getDateKey(selectedDate);
+            const todayKey = getDateKey(new Date());
+            
+            // History Structure: { "2023-11-22": { tasks: [], habits: [], journal: {mood, note} } }
+            const getDayData = (key) => history[key] || { tasks: [], habits: [], journal: null };
+            const currentDayData = getDayData(dateKey);
+
+            // Timer Logic
+            useEffect(() => {
+                let interval = null;
+                if (focusMode.active && focusMode.isRunning && focusMode.timeLeft > 0) {
+                    interval = setInterval(() => setFocusMode(p => ({ ...p, timeLeft: p.timeLeft - 1 })), 1000);
+                } else if (focusMode.timeLeft === 0 && focusMode.isRunning) {
+                    setFocusMode(p => ({ ...p, isRunning: false }));
+                    alert("Süre doldu! Harikasın.");
+                }
+                return () => clearInterval(interval);
+            }, [focusMode]);
+
+            // --- LOGIC ACTIONS ---
+
+            const handleSplashClick = () => {
+                if (splashStep === 0) setSplashStep(1);
+                else if (splashStep === 1) setSplashStep(2);
+            };
+
+            const updateGold = (amount) => {
+                setGold(prev => prev + amount);
+            };
+
+            const handleBuyReward = (reward) => {
+                if (gold >= reward.cost) {
+                    if(confirm(`${reward.title} almak istiyor musun? (-${reward.cost} Altın)`)) {
+                        updateGold(-reward.cost);
+                    }
+                } else {
+                    alert("Yetersiz altın! Biraz daha çalışmalısın.");
+                }
+            };
+
+            // Alışkanlık İşlemleri
+            const toggleHabit = (habitId) => {
+                const dayData = getDayData(dateKey);
+                const doneHabits = dayData.habits || [];
+                const isDone = doneHabits.includes(habitId);
+                
+                let newHabits;
+                if (isDone) {
+                    newHabits = doneHabits.filter(id => id !== habitId);
+                    if (dateKey === todayKey) updateGold(-5); // Geri al
+                } else {
+                    newHabits = [...doneHabits, habitId];
+                    if (dateKey === todayKey) updateGold(5); // Ödül
+                }
+
+                setHistory({ ...history, [dateKey]: { ...dayData, habits: newHabits } });
+            };
+
+            // Görev İşlemleri
+            const handleAddTask = (type) => {
+                let newTask;
+                if (type === 'simple') {
+                    newTask = { id: Date.now(), title: form.title, type: 'simple', completed: false, duration: form.time || '30', startTime: form.startTime || '' };
+                } else if (type === 'import') {
+                    const p = modal.data;
+                    const amount = Number(form.amount);
+                    newTask = {
+                        id: Date.now(), title: `${p.title} (${amount} ${p.unit})`, type: 'project_slice',
+                        pid: p.id, targetAmount: amount, subItems: new Array(amount).fill(false), completed: false,
+                        duration: form.time || '60', startTime: form.startTime || ''
+                    };
+                }
+                const dayData = getDayData(dateKey);
+                setHistory({ ...history, [dateKey]: { ...dayData, tasks: [...dayData.tasks, newTask] } });
+                closeModal();
+            };
+
+            const toggleTask = (taskId) => {
+                const dayData = getDayData(dateKey);
+                const task = dayData.tasks.find(t => t.id === taskId);
+                const newStatus = !task.completed;
+                
+                // Puanlama
+                if (dateKey === todayKey) {
+                    if (newStatus) updateGold(10);
+                    else updateGold(-10);
+                }
+
+                const updatedTasks = dayData.tasks.map(t => t.id === taskId ? { ...t, completed: newStatus } : t);
+                setHistory({ ...history, [dateKey]: { ...dayData, tasks: updatedTasks } });
+            };
+
+            const toggleSubItem = (taskId, index) => {
+                const dayData = getDayData(dateKey);
+                const updatedTasks = dayData.tasks.map(t => {
+                    if (t.id === taskId) {
+                        const newSubItems = [...t.subItems];
+                        const wasDone = newSubItems[index];
+                        newSubItems[index] = !wasDone;
+                        
+                        // Proje İlerlemesi ve Altın
+                        if (t.type === 'project_slice') {
+                             setProjects(prev => prev.map(p => p.id === t.pid ? { ...p, currentUnit: Math.min(p.totalUnit, Math.max(0, p.currentUnit + (wasDone ? -1 : 1))) } : p));
+                             if (dateKey === todayKey) updateGold(wasDone ? -5 : 5); // Her parça 5 altın
+                        }
+
+                        const allDone = newSubItems.every(i => i === true);
+                        return { ...t, subItems: newSubItems, completed: allDone };
+                    }
+                    return t;
+                });
+                setHistory({ ...history, [dateKey]: { ...dayData, tasks: updatedTasks } });
+            };
+
+            const deleteTask = (taskId) => {
+                const dayData = getDayData(dateKey);
+                setHistory({ ...history, [dateKey]: { ...dayData, tasks: dayData.tasks.filter(t => t.id !== taskId) } });
+            };
+
+            // Günlük (Journal)
+            const saveJournal = () => {
+                const dayData = getDayData(dateKey);
+                setHistory({ ...history, [dateKey]: { ...dayData, journal: { mood: form.mood, note: form.note } } });
+                closeModal();
+            };
+
+            // Proje Notları (Vault)
+            const updateProjectNotes = (pid, notes, links) => {
+                setProjects(prev => prev.map(p => p.id === pid ? { ...p, notes, links } : p));
+            };
+
+            const openModal = (type, data=null) => {
+                setModal({ open: true, type, data });
+                setForm({});
+                if (type === 'journal') {
+                    const j = getDayData(dateKey).journal || {};
+                    setForm({ mood: j.mood || '😐', note: j.note || '' });
+                }
+            };
+            const closeModal = () => setModal({ open: false, type: null, data: null });
+
+            // --- SKOR VE RENK ---
+            const getDailyStatus = (tasks) => {
+                if (!tasks || tasks.length === 0) return { score: 0, text: "Plan yok", color: "bg-gray-100 text-gray-400" };
+                const total = tasks.length; 
+                // Basitlik için tamamlanma oranına bakalım (süre yerine, daha stabil)
+                let doneCount = 0;
+                tasks.forEach(t => {
+                    if(t.subItems) doneCount += (t.subItems.filter(s=>s).length / t.subItems.length);
+                    else if(t.completed) doneCount += 1;
+                });
+                const p = (doneCount / total) * 100;
+                
+                if (p === 0) return { score: 1, text: "Başlangıç...", color: "bg-red-50 text-red-500 border-red-100" };
+                if (p < 40) return { score: 2, text: "Daha iyi olabilirsin", color: "bg-orange-50 text-orange-500 border-orange-100" };
+                if (p < 70) return { score: 3, text: "Gelişiyorsun", color: "bg-yellow-50 text-yellow-600 border-yellow-100" };
+                if (p < 95) return { score: 4, text: "Çok iyisin", color: "bg-green-50 text-green-600 border-green-100" };
+                return { score: 5, text: "Harika bir gün, süpersin", color: "bg-cyan-50 text-cyan-600 border-cyan-100 shadow-[0_0_15px_rgba(34,211,238,0.3)]" };
+            };
+            const dailyStatus = getDailyStatus(currentDayData.tasks);
+
+            // --- RENDER ---
+
+            if (splashStep < 2) {
+                return (
+                    <div onClick={handleSplashClick} className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center cursor-pointer z-50 transition-all duration-700">
+                        <div className="animate-fade-in text-center px-6 space-y-6">
+                            {splashStep === 0 && (
+                                <>
+                                    <h1 className="text-5xl font-thin tracking-widest">Life OS</h1>
+                                    <p className="text-gray-500 tracking-wide">HOŞGELDİN</p>
+                                </>
+                            )}
+                            {splashStep === 1 && (
+                                <>
+                                    <h1 className="text-2xl font-light tracking-wide">Kişisel Yaşam İşletim Merkezin</h1>
+                                    <h2 className="text-4xl font-bold mt-4">Bugün ne yapıyoruz?</h2>
+                                </>
+                            )}
+                            <div className="mt-12 text-xs text-gray-600 uppercase tracking-[0.3em] animate-pulse">Dokun</div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (focusMode.active) {
+                const m = Math.floor(focusMode.timeLeft / 60);
+                const s = focusMode.timeLeft % 60;
+                return (
+                    <div className="fixed inset-0 bg-gray-900 text-white flex flex-col items-center justify-center z-50 p-6">
+                        <div className="text-center space-y-8">
+                            <div className="text-gray-400 text-sm tracking-widest uppercase">ODAKLANMA MODU</div>
+                            <h2 className="text-3xl font-bold">{focusMode.taskTitle}</h2>
+                            <div className="text-9xl font-mono font-thin tracking-tighter tabular-nums">
+                                {String(m).padStart(2,'0')}:{String(s).padStart(2,'0')}
+                            </div>
+                            <div className="flex gap-6 justify-center mt-8">
+                                <button onClick={() => setFocusMode(p => ({...p, isRunning: !p.isRunning}))} className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition">
+                                    {focusMode.isRunning ? <Icons.Pause /> : <Icons.Play />}
+                                </button>
+                                <button onClick={() => setFocusMode({...focusMode, active: false})} className="w-20 h-20 border border-gray-600 text-gray-400 rounded-full flex items-center justify-center hover:border-white hover:text-white transition">
+                                    <Icons.Close />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            return (
+                <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-2xl overflow-hidden">
+                    
+                    {/* HEADER */}
+                    <div className="bg-white px-5 pt-10 pb-3 border-b border-gray-100 z-20">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">DURUM</div>
+                                <div className={`px-2 py-1 rounded text-xs font-bold border inline-block ${dailyStatus.color}`}>{dailyStatus.text}</div>
+                                <button onClick={() => openModal('journal')} className="ml-2 p-1 text-gray-400 hover:text-indigo-600 transition inline-block align-middle" title="Günlük"><Icons.Journal /></button>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <div className="flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                    <span className="font-bold text-yellow-600">{gold}</span>
+                                    <Icons.Coin />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {activeTab === 'planner' && (
+                            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1 mt-4 border border-gray-100">
+                                <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))} className="p-2 text-gray-400"><Icons.ChevronLeft/></button>
+                                <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    {selectedDate.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                    {dateKey === todayKey && <span className="w-2 h-2 rounded-full bg-indigo-500"></span>}
+                                </div>
+                                <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))} className="p-2 text-gray-400"><Icons.ChevronRight/></button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* CONTENT */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/30 scroll-smooth no-scrollbar">
+                        
+                        {/* PLANNER TAB */}
+                        {activeTab === 'planner' && (
+                            <>
+                                {/* HABIT TRACKER (Rutinler) */}
+                                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                                    <div className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Günlük Rutinler</div>
+                                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
+                                        {habits.map(h => {
+                                            const isDone = (currentDayData.habits || []).includes(h.id);
+                                            return (
+                                                <div key={h.id} onClick={() => toggleHabit(h.id)} className="flex flex-col items-center gap-1 cursor-pointer group min-w-[60px]">
+                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl border-2 transition-all ${isDone ? 'bg-indigo-100 border-indigo-500 scale-105' : 'bg-gray-50 border-gray-200 grayscale group-hover:grayscale-0'}`}>
+                                                        {h.icon}
+                                                    </div>
+                                                    <span className={`text-[10px] font-medium ${isDone ? 'text-indigo-600' : 'text-gray-400'}`}>{h.title}</span>
+                                                </div>
+                                            )
+                                        })}
+                                        <button onClick={() => openModal('habits_edit')} className="w-12 h-12 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 hover:border-indigo-300 hover:text-indigo-500 min-w-[48px]"><Icons.Plus /></button>
+                                    </div>
+                                </div>
+
+                                {/* TASKS */}
+                                <div className="space-y-3">
+                                    {currentDayData.tasks.length === 0 && (
+                                        <div className="text-center py-12 opacity-40">
+                                            <div className="text-4xl mb-2 grayscale">📝</div>
+                                            <div>Planlarınızı bekliyoruz.</div>
+                                        </div>
+                                    )}
+                                    
+                                    {currentDayData.tasks.map(t => (
+                                        <div key={t.id} className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 transition-all ${t.completed ? 'opacity-60' : ''}`}>
+                                            <div className="flex items-start gap-3">
+                                                {t.type === 'simple' ? (
+                                                    <button onClick={() => toggleTask(t.id)} className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${t.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-indigo-400'}`}>
+                                                        {t.completed && <Icons.Check />}
+                                                    </button>
+                                                ) : (
+                                                    <div className="mt-1 w-5 h-5 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold text-[10px]">
+                                                        {t.subItems ? t.subItems.filter(s=>s).length : 0}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex-1">
+                                                    <h4 className={`font-medium text-gray-800 ${t.completed ? 'line-through text-gray-400' : ''}`}>{t.title}</h4>
+                                                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
+                                                        <span className="flex items-center gap-1"><Icons.Clock /> {t.duration}dk</span>
+                                                        {t.startTime && <span className="bg-indigo-50 text-indigo-600 px-1.5 rounded">{t.startTime}</span>}
+                                                    </div>
+                                                    
+                                                    {/* Alt Adımlar */}
+                                                    {t.subItems && (
+                                                        <div className="flex flex-wrap gap-1.5 mt-3">
+                                                            {t.subItems.map((isDone, idx) => (
+                                                                <button key={idx} onClick={() => toggleSubItem(t.id, idx)} className={`w-7 h-7 rounded border flex items-center justify-center text-xs font-bold transition-all ${isDone ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-400'}`}>
+                                                                    {isDone ? <Icons.Check /> : idx + 1}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="flex flex-col gap-2">
+                                                    <button onClick={() => setFocusMode({active:true, taskId:t.id, taskTitle:t.title, timeLeft:Number(t.duration)*60, isRunning:true})} className="text-indigo-400 hover:text-indigo-600"><Icons.Play /></button>
+                                                    <button onClick={() => deleteTask(t.id)} className="text-gray-300 hover:text-red-400"><Icons.Trash /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => openModal('selection')} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 font-medium hover:border-indigo-400 hover:text-indigo-600 transition flex items-center justify-center gap-2">
+                                    <Icons.Plus /> Görev Ekle
+                                </button>
+                            </>
+                        )}
+
+                        {/* PROJECTS TAB (Flip Card Vault) */}
+                        {activeTab === 'projects' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="font-bold text-gray-700">Aktif Hedefler</h2>
+                                    <button onClick={() => openModal('project_new')} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100">+ YENİ</button>
+                                </div>
+                                
+                                {projects.map(p => {
+                                    const isFlipped = flippedCards[p.id];
+                                    const pct = Math.min(100, Math.round((p.currentUnit / p.totalUnit) * 100));
+
+                                    return (
+                                        <div key={p.id} className="relative h-64 perspective-1000 group">
+                                            <div className={`w-full h-full relative transition-all duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                                
+                                                {/* FRONT SIDE */}
+                                                <div className="absolute inset-0 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 backface-hidden flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex justify-between items-start">
+                                                            <h3 className="font-bold text-gray-800 text-lg">{p.title}</h3>
+                                                            <button onClick={() => setFlippedCards({...flippedCards, [p.id]: true})} className="p-1.5 bg-gray-50 rounded-full text-gray-400 hover:text-indigo-600"><Icons.Rotate /></button>
+                                                        </div>
+                                                        <div className="mt-2 text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-1 rounded">
+                                                            🎯 {p.currentUnit}/{p.totalUnit} {p.unit}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <div className="flex justify-between text-xs font-bold text-indigo-600 mb-1">
+                                                            <span>İLERLEME</span>
+                                                            <span>%{pct}</span>
+                                                        </div>
+                                                        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div className={`h-full transition-all duration-1000 ${pct>=100 ? 'bg-green-500':'bg-indigo-500'}`} style={{width: `${pct}%`}}></div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Dekor */}
+                                                    <div className="absolute -right-4 -bottom-4 text-gray-50 opacity-50 z-[-1]">
+                                                        <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"></circle></svg>
+                                                    </div>
+                                                </div>
+
+                                                {/* BACK SIDE (VAULT) */}
+                                                <div className="absolute inset-0 bg-gray-800 text-white p-5 rounded-2xl shadow-lg rotate-y-180 backface-hidden flex flex-col">
+                                                    <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                                                        <span className="text-xs font-bold tracking-widest text-gray-400">PROJE KASASI</span>
+                                                        <button onClick={() => setFlippedCards({...flippedCards, [p.id]: false})} className="text-gray-400 hover:text-white"><Icons.Rotate /></button>
+                                                    </div>
+                                                    <textarea 
+                                                        className="flex-1 bg-gray-700 rounded-lg p-3 text-sm text-gray-200 resize-none mb-2" 
+                                                        placeholder="Notlar, fikirler, linkler..."
+                                                        value={p.notes || ''}
+                                                        onChange={(e) => updateProjectNotes(p.id, e.target.value, p.links)}
+                                                    ></textarea>
+                                                    <div className="flex justify-between items-center text-xs text-gray-500">
+                                                        <span>Otomatik kaydedilir.</span>
+                                                        <button onClick={() => setProjects(projects.filter(pr => pr.id !== p.id))} className="text-red-400 hover:text-red-300">Sil</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        {/* STORE TAB */}
+                        {activeTab === 'store' && (
+                            <div className="space-y-6">
+                                <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                    <div className="relative z-10">
+                                        <div className="text-sm font-medium opacity-90">TOPLAM SERVETİN</div>
+                                        <div className="text-4xl font-bold mt-1 flex items-center gap-2">{gold} <span className="text-2xl opacity-80">Altın</span></div>
+                                    </div>
+                                    <div className="absolute -right-4 -bottom-8 opacity-20"><svg width="120" height="120" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"></circle></svg></div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {rewards.map(r => (
+                                        <button key={r.id} onClick={() => handleBuyReward(r)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-yellow-400 hover:shadow-md transition text-left group relative overflow-hidden">
+                                            <div className="text-2xl mb-2">{r.icon}</div>
+                                            <div className="font-bold text-gray-800 text-sm leading-tight mb-1">{r.title}</div>
+                                            <div className="text-xs font-bold text-yellow-600 bg-yellow-50 inline-block px-2 py-0.5 rounded">{r.cost} Altın</div>
+                                            
+                                            {/* Hover Efekti */}
+                                            <div className="absolute inset-0 bg-yellow-400 opacity-0 group-hover:opacity-10 transition flex items-center justify-center"></div>
+                                        </button>
+                                    ))}
+                                    <button onClick={() => openModal('reward_new')} className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition min-h-[100px]">
+                                        <Icons.Plus />
+                                        <span className="text-xs font-bold mt-1">Ödül Ekle</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CALENDAR TAB */}
+                        {activeTab === 'calendar' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                                    <h3 className="font-bold text-center mb-4 text-lg capitalize">{selectedDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</h3>
+                                    <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-300 mb-2"><div>Pt</div><div>Sa</div><div>Ça</div><div>Pe</div><div>Cu</div><div>Ct</div><div>Pz</div></div>
+                                    <div className="grid grid-cols-7 gap-2">
+                                        {Array.from({length: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay() === 0 ? 6 : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay() - 1}).map((_, i) => <div key={`e-${i}`}></div>)}
+                                        {Array.from({length: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate()}).map((_, i) => {
+                                            const d = i + 1;
+                                            const dDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), d);
+                                            const k = getDateKey(dDate);
+                                            const hData = history[k];
+                                            const stat = getDailyStatus(hData ? hData.tasks : []);
+                                            const mood = hData?.journal?.mood;
+                                            const isSelected = k === dateKey;
+                                            
+                                            return (
+                                                <div key={d} onClick={() => setSelectedDate(dDate)} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-bold cursor-pointer transition-all border ${isSelected ? 'ring-2 ring-indigo-500 z-10 bg-white' : 'border-transparent'} ${stat.score > 0 ? stat.color.split(' ')[0] : 'bg-gray-100 text-gray-300'}`}>
+                                                    <span>{d}</span>
+                                                    {mood && <span className="text-[8px] -mt-0.5">{mood}</span>}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                    {currentDayData.journal && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100 bg-indigo-50/50 -mx-5 -mb-5 p-4">
+                                            <div className="text-xs font-bold text-indigo-400 mb-1">GÜNLÜK NOTU</div>
+                                            <div className="text-sm text-gray-700 italic">"{currentDayData.journal.note}"</div>
+                                            <div className="text-right mt-1">{currentDayData.journal.mood}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="h-20"></div>
+                    </div>
+
+                    {/* BOTTOM NAV */}
+                    <div className="bg-white border-t border-gray-100 flex justify-around pb-safe pt-2 z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+                        <button onClick={() => setActiveTab('calendar')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='calendar' ? 'text-indigo-600':'text-gray-400'}`}><Icons.Calendar /><span className="text-[9px] font-bold">TAKVİM</span></button>
+                        <button onClick={() => setActiveTab('projects')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='projects' ? 'text-indigo-600':'text-gray-400'}`}><Icons.Briefcase /><span className="text-[9px] font-bold">HEDEF</span></button>
+                        <button onClick={() => setActiveTab('planner')} className={`p-3 -mt-8`}><div className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center border-4 border-white transition-transform ${activeTab==='planner' ? 'bg-indigo-600 text-white scale-110' : 'bg-gray-800 text-white'}`}><Icons.Plus /></div></button>
+                        <button onClick={() => setActiveTab('store')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='store' ? 'text-yellow-600':'text-gray-400'}`}><Icons.Store /><span className="text-[9px] font-bold">MAĞAZA</span></button>
+                    </div>
+
+                    {/* MODALS */}
+                    {modal.open && (
+                        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 backdrop-blur-sm p-4">
+                            <div className="bg-white w-full sm:w-96 rounded-3xl p-6 shadow-2xl animate-fade-in">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-bold text-gray-800">{modal.type.toUpperCase()}</h3>
+                                    <button onClick={closeModal} className="bg-gray-100 p-2 rounded-full"><Icons.Close /></button>
+                                </div>
+
+                                {/* JOURNAL MODAL */}
+                                {modal.type === 'journal' && (
+                                    <div className="space-y-4">
+                                        <div className="flex justify-around text-3xl bg-gray-50 p-4 rounded-2xl">
+                                            {['😫','😐','🙂','😃','🤩'].map(m => (
+                                                <button key={m} onClick={() => setForm({...form, mood: m})} className={`p-2 rounded-xl transition ${form.mood === m ? 'bg-white shadow-md scale-125' : 'opacity-50'}`}>{m}</button>
+                                            ))}
+                                        </div>
+                                        <textarea placeholder="Bugün nasıl geçti?" className="w-full p-4 bg-gray-50 rounded-2xl h-32 resize-none" value={form.note} onChange={e=>setForm({...form, note: e.target.value})}></textarea>
+                                        <button onClick={saveJournal} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Kaydet</button>
+                                    </div>
+                                )}
+
+                                {/* SELECTION MODAL */}
+                                {modal.type === 'selection' && (
+                                    <div className="space-y-3">
+                                        <button onClick={() => openModal('simple')} className="w-full p-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center gap-4 shadow-lg shadow-indigo-200">
+                                            <div className="bg-white/20 p-2 rounded-full"><Icons.Plus /></div> Tek Görev
+                                        </button>
+                                        <div className="text-xs text-gray-400 font-bold uppercase mt-4 mb-2 ml-1">Hedeflerden Çek</div>
+                                        <div className="max-h-60 overflow-y-auto space-y-2 no-scrollbar">
+                                            {projects.map(p => (
+                                                <button key={p.id} onClick={() => openModal('import', p)} className="w-full p-4 border rounded-2xl text-left flex justify-between items-center hover:border-indigo-500">
+                                                    <span className="font-semibold">{p.title}</span><span className="text-xs bg-gray-100 px-2 py-1 rounded">{p.unit}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SIMPLE TASK / REWARD FORM / PROJECT NEW / IMPORT ... (Generic Forms) */}
+                                {(modal.type === 'simple' || modal.type === 'project_new' || modal.type === 'reward_new') && (
+                                    <div className="space-y-4">
+                                        <input autoFocus placeholder="Başlık/İsim" className="w-full p-4 bg-gray-50 rounded-2xl font-semibold" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} />
+                                        
+                                        {modal.type === 'simple' && <div className="flex gap-2"><input type="number" placeholder="Süre (Dk)" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.time} onChange={e=>setForm({...form, time: e.target.value})} /><input type="time" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.startTime} onChange={e=>setForm({...form, startTime: e.target.value})} /></div>}
+                                        
+                                        {modal.type === 'project_new' && <div className="flex gap-2"><input placeholder="Birim (Slayt)" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.unit} onChange={e=>setForm({...form, unit: e.target.value})} /><input type="number" placeholder="Toplam" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.total} onChange={e=>setForm({...form, total: e.target.value})} /></div>}
+                                        
+                                        {modal.type === 'reward_new' && <div className="flex gap-2"><input type="number" placeholder="Bedel (Altın)" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.cost} onChange={e=>setForm({...form, cost: e.target.value})} /><input placeholder="İkon (🍎)" className="w-16 p-3 bg-gray-50 rounded-xl text-center" value={form.icon} onChange={e=>setForm({...form, icon: e.target.value})} /></div>}
+
+                                        <button onClick={() => {
+                                            if(modal.type==='simple') handleAddTask('simple');
+                                            if(modal.type==='project_new') { setProjects([...projects, {id: Date.now(), title: form.title, totalUnit: Number(form.total), currentUnit:0, unit: form.unit}]); closeModal(); }
+                                            if(modal.type==='reward_new') { setRewards([...rewards, {id: Date.now(), title: form.title, cost: Number(form.cost), icon: form.icon||'🎁'}]); closeModal(); }
+                                        }} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold">Kaydet</button>
+                                    </div>
+                                )}
+
+                                {modal.type === 'import' && (
+                                    <div className="space-y-4">
+                                        <div className="text-center font-bold text-indigo-600">{modal.data.title}</div>
+                                        <div className="flex justify-center gap-2 items-baseline"><input type="number" autoFocus className="w-24 text-center text-4xl font-bold bg-transparent border-b-2 border-indigo-200" placeholder="0" value={form.amount} onChange={e=>setForm({...form, amount: e.target.value})} /><span className="font-bold text-gray-400">{modal.data.unit}</span></div>
+                                        <div className="flex gap-2"><input type="number" placeholder="Süre (dk)" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.time} onChange={e=>setForm({...form, time: e.target.value})} /><input type="time" className="flex-1 p-3 bg-gray-50 rounded-xl" value={form.startTime} onChange={e=>setForm({...form, startTime: e.target.value})} /></div>
+                                        <button onClick={() => handleAddTask('import')} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Ekle</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
