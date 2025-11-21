@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v5.2</title>
+    <title>Life OS v5.3</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,7 +46,8 @@
             Rotate: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.2"/></svg>,
             Coin: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="gold" stroke="goldenrod" strokeWidth="1"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="white" strokeWidth="2" fill="none"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="white" strokeWidth="3"/></svg>,
             Store: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>,
-            Journal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            Journal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
+            HabitList: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
         };
 
         // --- VARSAYILAN VERİLER ---
@@ -56,6 +57,11 @@
             { id: 3, title: "30 Dk Oyun", cost: 40, icon: "🎮" },
             { id: 4, title: "Tatlı/Çikolata", cost: 30, icon: "🍫" },
             { id: 5, title: "Geç Uyanma", cost: 80, icon: "🛌" },
+            { id: 6, title: "Dışarıda Yemek", cost: 150, icon: "🍔" },
+            { id: 7, title: "Sosyal Medya", cost: 25, icon: "📱" },
+            { id: 8, title: "Yeni Kitap", cost: 200, icon: "📚" },
+            { id: 9, title: "Film Gecesi", cost: 100, icon: "🍿" },
+            { id: 10, title: "Tembellik Hakkı", cost: 60, icon: "🦥" },
         ];
 
         const DEFAULT_HABITS = [
@@ -65,33 +71,39 @@
         ];
 
         function App() {
+            // --- STATE ---
             const [splashStep, setSplashStep] = useState(0);
             const [activeTab, setActiveTab] = useState('planner'); 
             const [selectedDate, setSelectedDate] = useState(new Date());
             
+            // Data
             const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('v5_projects') || '[]'));
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('v5_history') || '{}'));
             const [habits, setHabits] = useState(() => JSON.parse(localStorage.getItem('v5_habits') || JSON.stringify(DEFAULT_HABITS)));
             const [rewards, setRewards] = useState(() => JSON.parse(localStorage.getItem('v5_rewards') || JSON.stringify(DEFAULT_REWARDS)));
             const [gold, setGold] = useState(() => Number(localStorage.getItem('v5_gold') || 0));
 
+            // UI State
             const [flippedCards, setFlippedCards] = useState({});
             const [focusMode, setFocusMode] = useState({ active: false, taskId: null, taskTitle: '', timeLeft: 0, isRunning: false });
             const [modal, setModal] = useState({ open: false, type: null, data: null });
             const [form, setForm] = useState({});
 
+            // --- PERSISTENCE ---
             useEffect(() => { localStorage.setItem('v5_projects', JSON.stringify(projects)); }, [projects]);
             useEffect(() => { localStorage.setItem('v5_history', JSON.stringify(history)); }, [history]);
             useEffect(() => { localStorage.setItem('v5_habits', JSON.stringify(habits)); }, [habits]);
             useEffect(() => { localStorage.setItem('v5_rewards', JSON.stringify(rewards)); }, [rewards]);
             useEffect(() => { localStorage.setItem('v5_gold', gold); }, [gold]);
 
+            // --- HELPERS ---
             const getDateKey = (date) => date.toISOString().split('T')[0];
             const dateKey = getDateKey(selectedDate);
             const todayKey = getDateKey(new Date());
             const getDayData = (key) => history[key] || { tasks: [], habits: [], journal: null };
             const currentDayData = getDayData(dateKey);
 
+            // Timer Logic
             useEffect(() => {
                 let interval = null;
                 if (focusMode.active && focusMode.isRunning && focusMode.timeLeft > 0) {
@@ -101,6 +113,8 @@
                 }
                 return () => clearInterval(interval);
             }, [focusMode]);
+
+            // --- LOGIC ACTIONS ---
 
             const handleSplashClick = () => {
                 if (splashStep === 0) setSplashStep(1);
@@ -118,6 +132,18 @@
                     }
                 } else {
                     alert("Yetersiz altın!");
+                }
+            };
+
+            const handleAddReward = () => {
+                if(!form.title) return;
+                setRewards([...rewards, {id: Date.now(), title: form.title, cost: Number(form.cost), icon: form.icon||'🎁'}]);
+                closeModal();
+            };
+
+            const handleDeleteReward = (id) => {
+                if(confirm("Bu ödülü silmek istiyor musun?")) {
+                    setRewards(rewards.filter(r => r.id !== id));
                 }
             };
 
@@ -237,15 +263,15 @@
             if (splashStep < 2) {
                 return (
                     <div onClick={handleSplashClick} className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center cursor-pointer z-50 transition-all duration-700">
-                        <div className="animate-fade-in text-center px-6 space-y-6">
-                            {splashStep === 0 && (<><h1 className="text-5xl font-thin tracking-widest">Life OS</h1><p className="text-gray-500 tracking-wide">HOŞGELDİN</p></>)}
+                        <div className="animate-fade-in text-center px-6 w-full h-full relative flex flex-col items-center justify-center">
+                            {splashStep === 0 && (<><h1 className="text-5xl font-thin tracking-widest mb-4">Life OS</h1><p className="text-gray-500 tracking-wide">HOŞGELDİN</p></>)}
                             {splashStep === 1 && (
-                                <div className="flex flex-col items-center gap-10">
+                                <div className="flex flex-col items-center gap-8">
                                     <h1 className="text-xl font-light tracking-wide opacity-80 mt-[-40px]">Kişisel Yaşam İşletim Merkezin</h1>
                                     <h2 className="text-4xl font-bold leading-tight">Bugün ne yapıyoruz?</h2>
                                 </div>
                             )}
-                            <div className="mt-12 text-xs text-gray-600 uppercase tracking-[0.3em] animate-pulse absolute bottom-20">Dokun</div>
+                            <div className="absolute bottom-16 text-xs text-gray-600 uppercase tracking-[0.3em] animate-pulse">Dokun</div>
                         </div>
                     </div>
                 );
@@ -299,7 +325,6 @@
                                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                                     <div className="flex justify-between items-center mb-3">
                                         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Günlük Rutinler</div>
-                                        <button onClick={() => openModal('habits_edit')} className="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-1 rounded">Düzenle</button>
                                     </div>
                                     <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
                                         {habits.map(h => {
@@ -347,6 +372,31 @@
                                 </div>
                                 <button onClick={() => openModal('selection')} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 font-medium hover:border-indigo-400 hover:text-indigo-600 transition flex items-center justify-center gap-2"><Icons.Plus /> Görev Ekle</button>
                             </>
+                        )}
+
+                        {activeTab === 'habits' && (
+                            <div className="space-y-6">
+                                <h2 className="font-bold text-gray-700 text-lg mb-4">Rutin Düzenleyici</h2>
+                                <div className="space-y-2">
+                                    {habits.map(h => (
+                                        <div key={h.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-2xl bg-gray-50 w-12 h-12 flex items-center justify-center rounded-full">{h.icon}</span>
+                                                <span className="font-semibold text-gray-800">{h.title}</span>
+                                            </div>
+                                            <button onClick={() => deleteHabit(h.id)} className="p-2 text-red-400 hover:text-red-600 bg-red-50 rounded-lg"><Icons.Trash /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="pt-6 border-t border-gray-200 mt-6">
+                                    <div className="text-xs font-bold text-gray-400 mb-3 uppercase">YENİ RUTİN EKLE</div>
+                                    <div className="flex gap-2">
+                                        <input placeholder="İkon (🧘‍♂️)" className="w-16 p-3 bg-white border border-gray-200 rounded-xl text-center text-xl" value={form.icon || ''} onChange={e=>setForm({...form, icon: e.target.value})} />
+                                        <input placeholder="Rutin Adı (Örn: 30dk Yürüyüş)" className="flex-1 p-3 bg-white border border-gray-200 rounded-xl" value={form.title || ''} onChange={e=>setForm({...form, title: e.target.value})} />
+                                    </div>
+                                    <button onClick={addHabit} className="w-full mt-3 bg-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-200">Listeye Ekle</button>
+                                </div>
+                            </div>
                         )}
 
                         {activeTab === 'projects' && (
@@ -412,6 +462,9 @@
                                 <div className="grid grid-cols-2 gap-3">
                                     {rewards.map(r => (
                                         <button key={r.id} onClick={() => handleBuyReward(r)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-yellow-400 hover:shadow-md transition text-left group relative overflow-hidden">
+                                            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition">
+                                                <div onClick={(e) => {e.stopPropagation(); handleDeleteReward(r.id);}} className="p-1 bg-red-50 rounded-full text-red-400 hover:bg-red-100"><Icons.Trash /></div>
+                                            </div>
                                             <div className="text-2xl mb-2">{r.icon}</div>
                                             <div className="font-bold text-gray-800 text-sm leading-tight mb-1">{r.title}</div>
                                             <div className="text-xs font-bold text-yellow-600 bg-yellow-50 inline-block px-2 py-0.5 rounded">{r.cost} Altın</div>
@@ -452,6 +505,7 @@
                         <button onClick={() => setActiveTab('calendar')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='calendar' ? 'text-indigo-600':'text-gray-400'}`}><Icons.Calendar /><span className="text-[9px] font-bold">TAKVİM</span></button>
                         <button onClick={() => setActiveTab('projects')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='projects' ? 'text-indigo-600':'text-gray-400'}`}><Icons.Briefcase /><span className="text-[9px] font-bold">HEDEF</span></button>
                         <button onClick={() => setActiveTab('planner')} className={`p-3 -mt-8`}><div className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center border-4 border-white transition-transform ${activeTab==='planner' ? 'bg-indigo-600 text-white scale-110' : 'bg-gray-800 text-white'}`}><Icons.Plus /></div></button>
+                        <button onClick={() => setActiveTab('habits')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='habits' ? 'text-indigo-600':'text-gray-400'}`}><Icons.HabitList /><span className="text-[9px] font-bold">RUTİNLER</span></button>
                         <button onClick={() => setActiveTab('store')} className={`p-3 flex flex-col items-center gap-1 transition ${activeTab==='store' ? 'text-yellow-600':'text-gray-400'}`}><Icons.Store /><span className="text-[9px] font-bold">MAĞAZA</span></button>
                     </div>
 
@@ -552,7 +606,7 @@
                                             <input placeholder="İkon (🎁)" className="w-16 p-3 bg-gray-50 rounded-xl text-center" value={form.icon} onChange={e=>setForm({...form, icon: e.target.value})} />
                                         </div>
                                         <input placeholder="Ödül Adı" className="w-full p-3 bg-gray-50 rounded-xl" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} />
-                                        <button onClick={() => { setRewards([...rewards, {id: Date.now(), title: form.title, cost: Number(form.cost), icon: form.icon||'🎁'}]); closeModal(); }} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold">Ödül Ekle</button>
+                                        <button onClick={handleAddReward} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold">Ödül Ekle</button>
                                     </div>
                                 )}
                             </div>
