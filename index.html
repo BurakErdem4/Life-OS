@@ -12,13 +12,35 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #f3f4f6; }
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background-color: #e5e7eb; 
+            margin: 0; 
+            padding: 0; 
+            height: 100dvh; 
+            display: flex; 
+            justify-content: center; 
+            overflow: hidden; 
+        }
+        #root { 
+            width: 100%; 
+            max-width: 28rem; 
+            height: 100%; 
+            background-color: white; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.1); 
+            position: relative;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Flip Card */
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
+        
         @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-in { animation: slideUp 0.3s ease-out forwards; }
     </style>
@@ -28,12 +50,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
-        // --- İKONLAR ---
-        const Icon = ({ name, size=20, className="", color="currentColor" }) => {
-            useEffect(() => { if(window.lucide) lucide.createIcons(); });
-            return <i data-lucide={name} width={size} height={size} style={{color}} className={className}></i>;
-        };
 
         // --- VARSAYILANLAR ---
         const DEFAULT_REWARDS = [
@@ -47,14 +63,14 @@
             { id: 8, title: "Yeni Kitap", cost: 200, icon: "📚" },
             { id: 9, title: "Film Gecesi", cost: 100, icon: "🍿" },
             { id: 10, title: "Tembellik Hakkı", cost: 60, icon: "🦥" },
-            { id: 11, title: "1 Bölüm Anime", cost: 25, icon: "🍥" },
+            { id: 11, title: "1 Bölüm Anime", cost: 25, icon: "🍥" }
         ];
 
         const DEFAULT_HABITS = [
             { id: 'h1', title: 'Yatağı Topla', icon: '🛏️' },
             { id: 'h2', title: 'Kitap Oku', icon: '📖' },
             { id: 'h3', title: 'Yarınını Planla', icon: '📋' },
-            { id: 'h4', title: 'Alarmı Erteleme', icon: '⏰' },
+            { id: 'h4', title: 'Alarmı Erteleme', icon: '⏰' }
         ];
 
         // --- HALKA ÇİZİM FONKSİYONLARI ---
@@ -86,8 +102,8 @@
                         const start = i * segmentAngle + (gap/2);
                         const end = (i + 1) * segmentAngle - (gap/2);
                         const isCompleted = i < completed;
-                        // GÜMÜŞ RENGİ (#C0C0C0) veya ALTIN (#EAB308)
-                        const color = isCompleted ? "#C0C0C0" : "rgba(200, 200, 200, 0.2)"; 
+                        // ALTIN RENGİ (#EAB308)
+                        const color = isCompleted ? "#EAB308" : "rgba(200, 200, 200, 0.2)"; 
                         const strokeWidth = isCompleted ? 2.5 : 2;
                         const effectiveEnd = total === 1 ? start + 359.9 : end;
                         
@@ -97,31 +113,36 @@
             )
         }
 
+        const Icon = ({ name, size=20, className="", color="currentColor" }) => {
+            useEffect(() => { if(window.lucide) lucide.createIcons(); });
+            return <i data-lucide={name} width={size} height={size} style={{color}} className={className}></i>;
+        };
+
         function App() {
             // --- STATE ---
             const [activeTab, setActiveTab] = useState('planner');
             const [selectedDate, setSelectedDate] = useState(new Date());
             
             // LOCAL STORAGE'DAN VERİ ÇEKME (Eski Anahtarlarını Korudum)
-            const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('v5_projects') || '[]'));
-            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('v5_history') || '{}'));
-            const [habits, setHabits] = useState(() => JSON.parse(localStorage.getItem('v5_habits') || JSON.stringify(DEFAULT_HABITS)));
-            const [rewards, setRewards] = useState(() => JSON.parse(localStorage.getItem('v5_rewards') || JSON.stringify(DEFAULT_REWARDS)));
-            const [gold, setGold] = useState(() => Number(localStorage.getItem('v5_gold') || 0));
+            const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('v8_projects') || '[]'));
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('v8_history') || '{}'));
+            const [habits, setHabits] = useState(() => JSON.parse(localStorage.getItem('v8_habits') || JSON.stringify(DEFAULT_HABITS)));
+            const [rewards, setRewards] = useState(() => JSON.parse(localStorage.getItem('v8_rewards') || JSON.stringify(DEFAULT_REWARDS)));
+            const [gold, setGold] = useState(() => Number(localStorage.getItem('v8_gold') || 0));
 
             const [flippedCards, setFlippedCards] = useState({});
             const [modal, setModal] = useState({ open: false, type: null, data: null });
             const [form, setForm] = useState({});
 
             // --- KAYIT ---
-            useEffect(() => { localStorage.setItem('v5_projects', JSON.stringify(projects)); }, [projects]);
-            useEffect(() => { localStorage.setItem('v5_history', JSON.stringify(history)); }, [history]);
-            useEffect(() => { localStorage.setItem('v5_habits', JSON.stringify(habits)); }, [habits]);
-            useEffect(() => { localStorage.setItem('v5_rewards', JSON.stringify(rewards)); }, [rewards]);
-            useEffect(() => { localStorage.setItem('v5_gold', gold); }, [gold]);
+            useEffect(() => { localStorage.setItem('v8_projects', JSON.stringify(projects)); }, [projects]);
+            useEffect(() => { localStorage.setItem('v8_history', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('v8_habits', JSON.stringify(habits)); }, [habits]);
+            useEffect(() => { localStorage.setItem('v8_rewards', JSON.stringify(rewards)); }, [rewards]);
+            useEffect(() => { localStorage.setItem('v8_gold', gold); }, [gold]);
 
             // İkonları güncelle
-            useEffect(() => { if(window.lucide) lucide.createIcons(); }, [activeTab, modal, projects, habits, rewards, selectedDate]);
+            useEffect(() => { lucide.createIcons(); }, [activeTab, modal, projects, habits, rewards, selectedDate]);
 
             // --- YARDIMCILAR ---
             const getDateKey = (d) => {
@@ -132,9 +153,24 @@
             };
             const dateKey = getDateKey(selectedDate);
             const todayKey = getDateKey(new Date());
-            
-            // Tarihe göre veriyi al veya boş oluştur
             const currentDayData = history[dateKey] || { tasks: [], habits: [], journal: null };
+
+            // --- PUANLAMA ---
+            const getDailyStatus = (dayTasks) => {
+                 if (!dayTasks || dayTasks.length === 0) return { text: "Plan Yok", color: "bg-gray-100 text-gray-400 border-gray-200" };
+                 let doneCount = 0;
+                 dayTasks.forEach(t => {
+                    if(t.subItems) doneCount += (t.subItems.filter(Boolean).length / t.subItems.length);
+                    else if(t.completed) doneCount += 1;
+                 });
+                 const p = (doneCount / dayTasks.length) * 100;
+                 if(p === 0) return { text: "Başlangıç...", color: "bg-red-50 text-red-500 text-white" };
+                 if(p < 40) return { text: "Daha iyi olabilirsin", color: "bg-orange-50 text-orange-600 border-orange-100" };
+                 if(p < 70) return { text: "Gelişiyorsun", color: "bg-yellow-50 text-yellow-700 border-yellow-100" };
+                 if(p < 95) return { text: "Çok iyisin", color: "bg-green-50 text-green-700 border-green-100" };
+                 return { text: "Harika bir gün!", color: "bg-cyan-50 text-cyan-700 border-cyan-100" };
+            };
+            const dailyStatus = getDailyStatus(currentDayData.tasks);
 
             // --- EYLEMLER ---
             const updateGold = (amount) => setGold(prev => prev + amount);
@@ -153,7 +189,6 @@
                     newTask = { id: Date.now(), title: form.title, type: 'simple', completed: false, duration: form.time || '30', startTime: form.startTime || '' };
                 } else {
                     const amount = Number(form.amount);
-                    // Akıllı süre hesabı
                     const p = modal.data;
                     let calcDuration = form.time;
                     if(!calcDuration && p.totalEstTime && p.totalUnit) {
@@ -258,29 +293,12 @@
                 }
             };
 
-            const getDailyStatus = (dayTasks) => {
-                 if (!dayTasks || dayTasks.length === 0) return { text: "Plan Yok", color: "bg-gray-100 text-gray-400 border-gray-200" };
-                 let doneCount = 0;
-                 dayTasks.forEach(t => {
-                    if(t.subItems) doneCount += (t.subItems.filter(Boolean).length / t.subItems.length);
-                    else if(t.completed) doneCount += 1;
-                 });
-                 const p = (doneCount / dayTasks.length) * 100;
-                 if(p === 0) return { text: "Başlangıç...", color: "bg-red-50 text-red-500 border-red-100 text-white" };
-                 if(p < 40) return { text: "Daha iyi olabilirsin", color: "bg-orange-50 text-orange-600 border-orange-100" };
-                 if(p < 70) return { text: "Gelişiyorsun", color: "bg-yellow-50 text-yellow-700 border-yellow-100" };
-                 if(p < 95) return { text: "Çok iyisin", color: "bg-green-50 text-green-700 border-green-100" };
-                 return { text: "Harika bir gün!", color: "bg-cyan-50 text-cyan-700 border-cyan-100" };
-            };
-            const dailyStatus = getDailyStatus(currentDayData.tasks);
-
-
             // --- RENDER ---
             return (
                 <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-2xl overflow-hidden border-x border-gray-200 relative">
                     
                     {/* HEADER */}
-                    <div className="p-5 bg-white border-b flex justify-between items-center z-20">
+                    <div className="p-5 bg-white border-b flex justify-between items-center z-20 shrink-0">
                         <div>
                             <div className="text-[10px] font-bold text-gray-400 uppercase">DURUM</div>
                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => openModal('journal')}>
@@ -295,7 +313,7 @@
 
                     {/* DATE NAV */}
                     {activeTab === 'planner' && (
-                        <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-100">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-100 shrink-0">
                              <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}><Icon name="chevron-left" /></button>
                              <span className="font-bold text-gray-700 flex items-center gap-2">
                                  {selectedDate.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -308,6 +326,7 @@
                     {/* CONTENT */}
                     <div className="flex-1 overflow-y-auto p-5 bg-gray-50/30 space-y-6 no-scrollbar pb-24">
                         
+                        {/* --- PLANNER --- */}
                         {activeTab === 'planner' && (
                             <>
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 overflow-x-auto whitespace-nowrap no-scrollbar flex gap-4">
@@ -356,11 +375,12 @@
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center"><h2 className="font-bold text-gray-700">Büyük Hedefler</h2><button onClick={() => {setForm({}); setModal({type:'project_form'});}} className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded font-bold">+ YENİ</button></div>
                                 {projects.map(p => {
-                                    const pct = Math.min(100, Math.round(((p.currentUnit||0) / p.totalUnit) * 100));
+                                    const pct = Math.round(((p.currentUnit||0) / p.totalUnit) * 100);
                                     const isFlipped = flippedCards[p.id];
                                     return (
                                         <div key={p.id} className="relative h-64 perspective-1000 group w-full">
                                             <div className={`w-full h-full relative transition-all duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                                {/* Front */}
                                                 <div className="absolute inset-0 bg-white p-5 rounded-xl shadow-sm border border-gray-100 backface-hidden flex flex-col justify-between">
                                                     <div>
                                                         <div className="flex justify-between items-start">
@@ -377,6 +397,7 @@
                                                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 transition-all duration-500" style={{width: `${pct}%`}}></div></div>
                                                     </div>
                                                 </div>
+                                                {/* Back */}
                                                 <div className="absolute inset-0 bg-gray-800 text-white p-5 rounded-xl shadow-lg rotate-y-180 backface-hidden flex flex-col">
                                                     <div className="flex justify-between border-b border-gray-700 pb-2 mb-2">
                                                         <span className="text-xs font-bold tracking-widest text-gray-400">KASA</span>
@@ -446,12 +467,18 @@
                                             const dayStat = history[k];
                                             const completedHabits = dayStat?.habits?.length || 0;
                                             const totalHabits = habits.length || 1;
+                                            const score = dayStat ? (dayStat.tasks && dayStat.tasks.length > 0 ? getDailyStatus(dayStat.tasks).score : 0) : 0;
                                             const isSelected = k === dateKey;
+                                            let bg = 'bg-gray-50 text-gray-400';
+                                            if(score === 5) bg = 'bg-green-100 text-green-600';
+                                            else if(score >= 3) bg = 'bg-blue-100 text-blue-600';
+                                            else if(score > 0) bg = 'bg-orange-100 text-orange-600';
+                                            if (isSelected) bg = 'bg-indigo-600 text-white';
 
                                             return (
                                                 <div key={d} className="relative w-10 h-10 flex items-center justify-center">
                                                     <HabitRing total={habits.length} completed={completedHabits} size={44} />
-                                                    <div onClick={() => setSelectedDate(dDate)} className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer absolute ${isSelected ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}>{d}</div>
+                                                    <div onClick={() => setSelectedDate(dDate)} className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer absolute ${bg}`}>{d}</div>
                                                 </div>
                                             )
                                         })}
