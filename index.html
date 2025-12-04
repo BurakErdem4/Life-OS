@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Life OS v5.6</title>
+    <title>Life OS v5.7</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -522,25 +522,36 @@
                                             const stat = getDailyStatus(hData ? hData.tasks : []);
                                             const isSelected = k === dateKey;
                                             
-                                            // --- RING LOGIC ---
+                                            // --- RING LOGIC (CORRECTED) ---
                                             const totalHabits = habits.length;
                                             const doneHabitsCount = (hData && hData.habits) ? hData.habits.length : 0;
                                             
                                             const radius = 20; 
                                             const circumference = 2 * Math.PI * radius; 
-                                            const gap = 5; 
+                                            const gap = 4; // Boşluk
+                                            // Segment uzunluğu: (Çevre - (Toplam boşluk)) / Toplam
                                             const segmentLength = totalHabits > 0 ? ((circumference - (totalHabits * gap)) / totalHabits) : circumference;
+                                            
+                                            // Gümüş Halka (Zemin - Slotlar)
+                                            // Sadece segment ve gap.
                                             const grayDashArray = totalHabits > 0 ? `${segmentLength} ${gap}` : "0 0";
-                                            const goldDashArray = totalHabits > 0 
-                                                ? new Array(doneHabitsCount).fill(`${segmentLength} ${gap}`).join(' ') + ` ${circumference}` 
-                                                : `0 999`;
+
+                                            // Altın Halka (Doluluk)
+                                            // Mantık: Done sayısı kadar "segment gap" ekle, sonra kalanı saklamak için "0 999" ekle.
+                                            let goldDashArray = "0 999";
+                                            if (totalHabits > 0 && doneHabitsCount > 0) {
+                                                // Örneğin 2 tane yapıldıysa: "37 4 37 4" + " 0 999" (geri kalan her şeyi gizle)
+                                                goldDashArray = new Array(doneHabitsCount).fill(`${segmentLength} ${gap}`).join(' ') + " 0 999";
+                                            }
 
                                             return (
                                                 <div key={d} onClick={() => setSelectedDate(dDate)} className={`aspect-square relative flex items-center justify-center cursor-pointer group`}>
                                                     {/* RING SVG */}
                                                     {totalHabits > 0 && (
                                                         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 50 50">
-                                                            <circle cx="25" cy="25" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="2" strokeDasharray={grayDashArray} />
+                                                            {/* Gümüş Zemin: Tüm slotlar açık gri */}
+                                                            <circle cx="25" cy="25" r={radius} fill="none" stroke="#d1d5db" strokeWidth="2" strokeDasharray={grayDashArray} />
+                                                            {/* Altın İlerleme: Sadece tamamlananlar */}
                                                             <circle cx="25" cy="25" r={radius} fill="none" stroke="#EAB308" strokeWidth="2" strokeDasharray={goldDashArray} strokeLinecap="round" />
                                                         </svg>
                                                     )}
